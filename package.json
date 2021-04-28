@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "chokidar": "^3.5.1",
-    "cli-color": "^2.0.0"
+    "cli-color": "^2.0.0",
+    "eslint": "^7.23.0"
   },
   "engines": {
     "node": ">= 12.13.0"
@@ -17,5 +18,8 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/kuzzleio/kuzzle-reloader.git"
+  },
+  "scripts": {
+    "test:lint": "eslint --max-warnings=0 ./bin"
   }
 }
