@@ -9,7 +9,7 @@
   "dependencies": {
     "chokidar": "^3.5.1",
     "cli-color": "^2.0.0",
-    "eslint": "^7.23.0"
+    "eslint": "^7.25.0"
   },
   "engines": {
     "node": ">= 12.13.0"
