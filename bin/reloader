@@ -31,7 +31,7 @@ const chokidar = require('chokidar');
 const clc = require('cli-color');
 
 const config = {
-  cwd: '/home/m4thieu/Repositories/tmp/kuzzle',
+  cwd: '/var/app',
   killDelay: 5000,
   watch: [
     'lib',
