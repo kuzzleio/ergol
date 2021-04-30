@@ -1,0 +1,9 @@
+{
+  "killDelay": "5000",
+  "watch": [
+    "lib",
+    "src",
+    "index.*s",
+    "nodes_modules"
+  ]
+}
