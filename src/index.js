@@ -50,7 +50,7 @@ let state = StateEnum.STOPPED;
  * @param {Array<string>} scriptArgs Arguments to pass to the script (Default to [])
  * @param {Array<string>} nodeArgs Arguments to pass to the node interpreter (Default to [])
  */
-async function run(config, script, scriptArgs = [], nodeArgs = []) {
+async function run(config, script) {
   const watcher = chokidar.watch(script);
   watcher.add(config.watch.map(dir => path.join(config.cwd, dir)));
 
@@ -58,17 +58,17 @@ async function run(config, script, scriptArgs = [], nodeArgs = []) {
     if (state !== StateEnum.STOPPING) {
       console.log(clc.green(`[RELOADER] Change detected on ${path.relative(config.cwd, file)}. Reloading...`));
       await stopProcess(config.killDelay);
-      startProcess(script, scriptArgs, nodeArgs);
+      startProcess(script, config.scriptArgs, config.nodeArgs);
     }
   });
 
   process.on('SIGUSR1', async () => {
     console.log(clc.green('[RELOADER] Caught signal SIGUSR1. Restarting...'));
     await stopProcess(config.killDelay);
-    startProcess(script, scriptArgs, nodeArgs);
+    startProcess(script, config.scriptArgs, config.nodeArgs);
   });
 
-  startProcess(script, scriptArgs, nodeArgs);
+  startProcess(script, config.scriptArgs, config.nodeArgs);
 }
 
 /**
@@ -78,7 +78,7 @@ async function run(config, script, scriptArgs = [], nodeArgs = []) {
  * @param {Array<string>} scriptArgs Arguments to pass to the script (Default to [])
  * @param {Array<string>} nodeArgs Arguments to pass to the node interpreter (Default to [])
  */
-function startProcess (script, scriptArgs = [], nodeArgs = []) {
+function startProcess (script, scriptArgs, nodeArgs) {
   childProcess = fork(script, scriptArgs, {
     detached: true,
     execArgv: nodeArgs,

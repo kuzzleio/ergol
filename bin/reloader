@@ -54,17 +54,13 @@ const args = yargs
       type: 'number'
     },
     'node-args': {
-      alias: 'n',
-      default: [],
       describe: 'Arguments to pass to the node interpreter',
-      group: 'General:',
+      group: 'Configuration (override --config):',
       type: 'array'
     },
     'script-args': {
-      alias: 's',
-      default: [],
       describe: 'Arguments to pass to the script',
-      group: 'General:',
+      group: 'Configuration (override --config):',
       type: 'array'
     },
     'watch': {
@@ -75,7 +71,7 @@ const args = yargs
     },
   })
   .strict(true)
-  .usage('USAGE: $0 <script> -s <script-args> -n <node-args> -c <config> -d <cwd>')
+  .usage('USAGE: $0 <script> -c <config> -d <cwd>')
   .parse();
 
 if (args._.length !== 1) {
@@ -104,6 +100,8 @@ if (args.config) {
 
 const config = Object.assign(defaultConfig, jsonConfig, { cwd: args.cwd });
 if (args.watch) { config.watch = args.watch; }
-if (args['kill-delay']) { config['kill-delay'] = args['kill-delay']; }
+if (args['kill-delay']) { config.killDelay = args['kill-delay']; }
+if (args['script-args']) { config.scriptArgs = args['script-args']; }
+if (args['node-args']) { config.nodeArgs = args['node-args']; }
 
-run(config, script, args['script-args'], args['node-args']);
+run(config, script);

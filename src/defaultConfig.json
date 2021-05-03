@@ -1,5 +1,7 @@
 {
   "killDelay": "5000",
+  "nodeArgs": [],
+  "scriptArgs": [],
   "watch": [
     "lib",
     "src",
