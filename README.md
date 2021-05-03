@@ -26,7 +26,7 @@ This script is meant to replace solutions like nodemon, which have a few cumbers
 
 Ergol allows you to customize its behavior when necessary. If its a ponctual setting you can use one of the command argument listed before but we recommend using a config file when using recurrent options.
 
-If you choose to use both methods, beware of which setting will selected. Ergol will resolve each parameter by looking for command options first, config file then and default config otherwise.
+If you choose to use both methods, beware of which setting will be selected. Ergol will resolve each parameter by looking for command options first, config file then and default config otherwise.
 
 ### Default Config
 
