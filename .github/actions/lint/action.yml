@@ -3,7 +3,7 @@ description: Run ESLint
 runs:
   using: "composite"
   steps:
-    - name: Install deps
+    - name: Install dependencies & run ESLint
       shell: bash
       run: |
            npm ci
