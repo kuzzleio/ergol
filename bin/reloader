@@ -1,23 +1,24 @@
 #!/usr/bin/env node
 
 /*
- * For development purposes only: this script is meant to be run on top
- * of a Kuzzle starter script. It watches source files (json, ts, js) from
- * Kuzzle core, plugins, configuration files.
- * When a file changes, it automatically shuts the current process down, WAIT
- * until it has correctly been stopped (or kills it after some delay), and only
- * then restarts it.
+ * Kuzzle, a backend software, self-hostable and ready to use
+ * to power modern apps
  *
- * This script is meant to replace solutions like nodemon, which have a few
- * cumbersome caveats.
+ * Copyright 2015-2021 Kuzzle
+ * mailto: support AT kuzzle.io
+ * website: http://kuzzle.io
  *
- * Usage: npx kuzzle-reloader <config file> <node args> <starter script> <args>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * With:
- *   - <config file>: this script configuration file
- *   - <node args>: arguments to pass to the node interpreter
- *   - <starter script>: the script to execute using node
- *   - <args>: script arguments
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /* eslint-disable no-console */
@@ -25,124 +26,82 @@
 'use strict';
 
 const path = require('path');
-const { fork } = require('child_process');
+const yargs = require('yargs');
+const run = require('../src');
+const { isPlainObject } = require('../src/utils');
+const defaultConfig = require('../src/defaultConfig.json');
 
-const chokidar = require('chokidar');
-const clc = require('cli-color');
+// Parsing arguments
+const args = yargs
+  .options({
+    'config': {
+      alias: 'c',
+      describe: 'JSON file containing configuration variables intended to override default ones',
+      group: 'General:',
+      type: 'string'
+    },
+    'cwd': {
+      alias: 'd',
+      default: process.cwd(),
+      describe: 'Current Working Directory (if different from your actual cwd)',
+      group: 'General:',
+      type: 'string'
+    },
+    'kill-delay': {
+      alias: 'k',
+      describe: 'Kill the process if it did not stop after this delay',
+      group: 'Configuration (override --config):',
+      type: 'number'
+    },
+    'node-args': {
+      describe: 'Arguments to pass to the node interpreter',
+      group: 'Configuration (override --config):',
+      type: 'array'
+    },
+    'script-args': {
+      describe: 'Arguments to pass to the script',
+      group: 'Configuration (override --config):',
+      type: 'array'
+    },
+    'watch': {
+      alias: 'w',
+      describe: 'Array of cwd relative path/to/directories or files to watch',
+      group: 'Configuration (override --config):',
+      type: 'array'
+    },
+  })
+  .strict(true)
+  .usage('USAGE: $0 <script> -c <config> -d <cwd>')
+  .parse();
 
-const config = {
-  cwd: '/var/app',
-  killDelay: 5000,
-  watch: [
-    'lib',
-    'plugins',
-    'node_modules',
-    'index.*s',
-    'docker/scripts/*.ts',
-  ],
-};
+if (args._.length !== 1) {
+  console.error('Error: A script to start your project (and reload it when necessary) must be provided\n');
+  yargs.showHelp();
+  process.exit(1);
+}
+const script = args._[0];
 
-const stateEnum = Object.freeze({
-  RUNNING: 1,
-  STOPPED: 2,
-  STOPPING: 3,
-});
-
-const { nodeArgs, script, scriptArgs } = parseArgs();
-
-let childProcess;
-let state = stateEnum.STOPPED;
-
-function parseArgs () {
-  const args = process.argv.slice(2);
-  const idx = args.findIndex(arg => arg.endsWith('.js') || arg.endsWith('.ts'));
-
-  return {
-    nodeArgs: args.slice(0, idx),
-    script: args[idx],
-    scriptArgs: args.slice(idx + 1),
-  };
+// Merging configurations: defaultConfig < jsonConfig < Configuration args
+let jsonConfig = {};
+if (args.config) {
+  const configPath = path.join(args.cwd, args.config);
+  try {
+    jsonConfig = require(configPath);
+  }
+  catch (error) {
+    console.error('Error: Config path is incorrect, it must be relative to your cwd.');
+    process.exit(1);
+  }
+  if (!isPlainObject(jsonConfig)) {
+    console.error('Error: Config file must be a JSON object');
+    process.exit(1);
+  }
 }
 
-function startProcess () {
-  childProcess = fork(script, scriptArgs, {
-    detached: true,
-    execArgv: nodeArgs,
-  });
+const config = Object.assign(defaultConfig, jsonConfig, { cwd: args.cwd });
+if (args.watch) { config.watch = args.watch; }
+if (args['kill-delay']) { config.killDelay = args['kill-delay']; }
+if (args['script-args']) { config.scriptArgs = args['script-args']; }
+if (args['node-args']) { config.nodeArgs = args['node-args']; }
 
-  childProcess.on('exit', (code, signal) => {
-    const msg = code !== null
-      ? `code ${code}`
-      : `signal ${signal}`;
-
-    console.log(clc.red(`[RELOADER] Process exited with ${msg}. Waiting for a file change to restart it.`));
-    childProcess = null;
-    state = stateEnum.STOPPED;
-  });
-
-  // exits child process on termination
-  for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.on(signal, () => {
-      if (childProcess) {
-        childProcess.kill(signal);
-      }
-
-      process.exit();
-    });
-  }
-
-  state = stateEnum.RUNNING;
-}
-
-async function stopProcess () {
-  if (state !== stateEnum.RUNNING) {
-    return;
-  }
-
-  state = stateEnum.STOPPING;
-
-  childProcess.removeAllListeners();
-
-  let exited = false;
-
-  childProcess.on('exit', () => {
-    exited = true;
-  });
-
-  childProcess.kill();
-
-  // Wait for config.killDelay for the process to stop itself, after that: kill it
-  const now = Date.now();
-  let forced = false;
-
-  while (!exited) {
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    if (!forced && (Date.now() - now) > config.killDelay) {
-      console.log(clc.red(`[RELOADER] Process still here after ${config.killDelay}ms. Sending a SIGKILL signal`));
-      childProcess.kill('SIGKILL');
-      forced = true;
-    }
-  }
-
-  state = stateEnum.STOPPED;
-}
-
-const watcher = chokidar.watch(script);
-watcher.add(config.watch.map(dir => path.join(config.cwd, dir)));
-
-watcher.on('change', async file => {
-  if (state !== stateEnum.STOPPING) {
-    console.log(clc.green(`[RELOADER] Change detected on ${path.relative(config.cwd, file)}. Reloading...`));
-    await stopProcess();
-    startProcess();
-  }
-});
-
-process.on('SIGUSR1', async () => {
-  console.log(clc.green('[RELOADER] Caught signal SIGUSR1. Restarting...'));
-  await stopProcess();
-  startProcess();
-});
-
-startProcess();
+run(config, script);

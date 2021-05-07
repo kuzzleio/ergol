@@ -1,14 +1,16 @@
 {
-  "name": "kuzzle-reloader",
+  "name": "ergol",
   "author": "The Kuzzle Team <support@kuzzle.io>",
-  "description": "When running on top of a Kuzzle starter script during development, reload the app after every change in the codebase",
+  "description": "Meant to run on top of another script during development, reload the app after every change in the codebase",
   "version": "1.0.0",
   "bin": {
-    "kuzzle-reloader": "./bin/reloader"
+    "ergol": "./bin/reloader"
   },
   "dependencies": {
     "chokidar": "^3.5.1",
-    "cli-color": "^2.0.0"
+    "cli-color": "^2.0.0",
+    "eslint": "^7.25.0",
+    "yargs": "^16.2.0"
   },
   "engines": {
     "node": ">= 12.13.0"
@@ -16,6 +18,9 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/kuzzleio/kuzzle-reloader.git"
+    "url": "git://github.com/kuzzleio/ergol.git"
+  },
+  "scripts": {
+    "test:lint": "eslint --max-warnings=0 ./src"
   }
 }
