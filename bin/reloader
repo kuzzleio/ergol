@@ -70,7 +70,7 @@ const args = yargs
       type: 'array'
     },
   })
-  .strict(true)
+  .strictOptions(true)
   .usage('USAGE: $0 <script> -c <config> -d <cwd>')
   .parse();
 
