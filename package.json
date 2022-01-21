@@ -2,7 +2,7 @@
   "name": "ergol",
   "author": "The Kuzzle Team <support@kuzzle.io>",
   "description": "Meant to run on top of another script during development, reload the app after every change in the codebase",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "bin": {
     "ergol": "./bin/reloader"
   },
