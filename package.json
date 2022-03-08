@@ -7,10 +7,10 @@
     "ergol": "./bin/reloader"
   },
   "dependencies": {
-    "chokidar": "^3.5.1",
-    "cli-color": "^2.0.0",
-    "eslint": "^7.25.0",
-    "yargs": "^17.0.1"
+    "chokidar": "^3.5.3",
+    "cli-color": "^2.0.1",
+    "eslint": "^8.7.0",
+    "yargs": "^17.3.1"
   },
   "engines": {
     "node": ">= 12.13.0"

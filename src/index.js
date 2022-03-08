@@ -29,6 +29,8 @@ const chokidar = require('chokidar');
 const { fork } = require('child_process');
 const StateEnum = require('./stateEnum');
 
+let notEnoughWatcherError = false;
+
 /**
  * Process running under this one and that is reloaded when necessary
  */
@@ -44,7 +46,7 @@ let state = StateEnum.STOPPED;
  * When a file changes, it automatically shuts the current process down,
  * wait until it has correctly been stopped (or kills it after some delay),
  * and only then restarts it.
- * 
+ *
  * @param {Object} config Configuration variables
  * @param {string} script Path to the script that runs under this process and that is reloaded when necessary
  * @param {Array<string>} scriptArgs Arguments to pass to the script (Default to [])
@@ -68,12 +70,35 @@ async function run(config, script) {
     startProcess(script, config.scriptArgs, config.nodeArgs);
   });
 
+  process.on('unhandledRejection', async error => {
+    if (error.message.includes('ENOSPC')) {
+      if (notEnoughWatcherError) {
+        return;
+      }
+
+      notEnoughWatcherError = true;
+
+      console.error(error.message);
+      console.error('  You system does not have enough file watchers to run Ergol.');
+      console.error('  You need to increase this number:');
+      console.error('    - Linux: "sudo sysctl -w fs.inotify.max_user_watches=524288"');
+      console.error('    - OSX: "sudo sysctl -w kern.maxfiles=524288"');
+      console.error('\n  Or you can just search "increase system file watcher <your os>"');
+
+      await stopProcess(config.killDelay);
+      process.exit(1);
+    }
+    else {
+      throw error;
+    }
+  });
+
   startProcess(script, config.scriptArgs, config.nodeArgs);
 }
 
 /**
  * Starts the child process with the given args
- * 
+ *
  * @param {string} script Path to the script that runs under this process and that is reloaded when necessary
  * @param {Array<string>} scriptArgs Arguments to pass to the script (Default to [])
  * @param {Array<string>} nodeArgs Arguments to pass to the node interpreter (Default to [])
@@ -111,7 +136,7 @@ function startProcess (script, scriptArgs, nodeArgs) {
 
 /**
  * Gracefully shuts the current process down or kills it after some delay
- * 
+ *
  * @param {number} killDelay Max delay after which the process must be killed
  */
 async function stopProcess (killDelay) {
